@@ -418,7 +418,7 @@ class ClientDrawer extends StatelessWidget {
                   (loggedInUser!.userType == 'admin')
                       ? ListTile(
                           leading: const Icon(Icons.wallet),
-                          title: const Text('Sales'),
+                          title: const Text('Sales Inventory'),
                           onTap: () {
                             Navigator.of(context).pop();
                             showDialog(

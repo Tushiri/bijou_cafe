@@ -4,6 +4,10 @@ import 'package:bijou_cafe/models/online_order_model.dart';
 import 'package:bijou_cafe/models/order_model.dart';
 import 'package:bijou_cafe/utils/firestore_database.dart';
 import 'package:bijou_cafe/constants/colors.dart';
+import 'package:pdf/widgets.dart' as pdfLib;
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
 
 class ManageSales extends StatefulWidget {
   const ManageSales({Key? key}) : super(key: key);
@@ -15,9 +19,6 @@ class ManageSales extends StatefulWidget {
 class ManageSalesState extends State<ManageSales> {
   FirestoreDatabase firestore = FirestoreDatabase();
   late List<OnlineOrderModel> refreshedOrders;
-  DateTime? _selectedDateFrom;
-  DateTime? _selectedDateTo;
-
   List<OnlineOrderModel> orders = [];
 
   @override
@@ -31,20 +32,104 @@ class ManageSalesState extends State<ManageSales> {
     if (initialOrders != null) {
       setState(() {
         refreshedOrders = initialOrders;
+        orders = refreshedOrders; // Display all orders initially
       });
     }
   }
 
   Future<void> _searchSales() async {
-    if (_selectedDateFrom != null && _selectedDateTo != null) {
-      setState(() {
-        orders = refreshedOrders
-            .where((order) =>
-                order.dateOrdered.isAfter(_selectedDateFrom!) &&
-                order.dateOrdered.isBefore(_selectedDateTo!))
-            .toList();
-      });
-    }
+    // Implement your search logic if needed
+  }
+
+  void _generateAndShowSalesReport() async {
+    final pdf = pdfLib.Document();
+    double totalSales = 0;
+
+    pdf.addPage(
+      pdfLib.Page(
+        build: (context) {
+          // Title
+          pdfLib.Widget titleWidget = pdfLib.Column(
+            crossAxisAlignment: pdfLib.CrossAxisAlignment.start,
+            children: [
+              pdfLib.Text('Sales Report',
+                  style: pdfLib.TextStyle(
+                    fontWeight: pdfLib.FontWeight.bold,
+                    fontSize: 20,
+                  )),
+              pdfLib.SizedBox(height: 10),
+            ],
+          );
+
+          // Table Header
+          final tableHeaders = [
+            'Order ID',
+            'Date',
+            'Total Price',
+            'Delivery Charge'
+          ];
+
+          final tableData = orders.map<List<dynamic>>((order) {
+            final orderId = order.orderId;
+            final date = DateFormat('yyyy-MM-dd').format(order.dateOrdered);
+            final totalPrice = order.totalPrice;
+            final deliveryCharge = order.deliveryCharge;
+
+            // Accumulate the total sales
+            totalSales += totalPrice;
+
+            return [orderId, date, totalPrice, deliveryCharge];
+          }).toList();
+
+          // Table
+          pdfLib.Widget tableWidget = pdfLib.Table.fromTextArray(
+            headers: tableHeaders,
+            data: tableData,
+            border: null,
+            cellHeight: 30,
+            cellAlignments: {
+              0: pdfLib.Alignment.centerLeft,
+              1: pdfLib.Alignment.centerLeft,
+              2: pdfLib.Alignment.centerRight,
+              3: pdfLib.Alignment.centerRight,
+            },
+          );
+
+          // Total Sales
+          pdfLib.Widget totalSalesWidget = pdfLib.Column(
+            crossAxisAlignment: pdfLib.CrossAxisAlignment.start,
+            children: [
+              pdfLib.SizedBox(height: 20),
+              pdfLib.Text('Total Sales: PHP ${totalSales.toStringAsFixed(2)}',
+                  style: pdfLib.TextStyle(
+                    fontWeight: pdfLib.FontWeight.bold,
+                    fontSize: 18,
+                  )),
+            ],
+          );
+
+          return pdfLib.Column(
+            children: [titleWidget, tableWidget, totalSalesWidget],
+          );
+        },
+      ),
+    );
+
+    // Save the PDF to a file
+    final directory = await getExternalStorageDirectory();
+    final file = File("${directory!.path}/sales_report.pdf");
+    await file.writeAsBytes(await pdf.save());
+
+    // Open the generated PDF
+    OpenFile.open(file.path);
+
+    // Show a notification
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Sales Report saved to ${file.path}'),
+        duration: const Duration(seconds: 5),
+      ),
+    );
   }
 
   @override
@@ -71,7 +156,7 @@ class ManageSalesState extends State<ManageSales> {
             const Padding(
               padding: EdgeInsets.all(16.0),
               child: Text(
-                'Sales',
+                'Sales Inventory',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -82,107 +167,6 @@ class ManageSalesState extends State<ManageSales> {
             Expanded(
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: InkWell(
-                      onTap: () async {
-                        DateTime? pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2025),
-                          builder: (BuildContext context, Widget? child) {
-                            return Theme(
-                              data: ThemeData.light().copyWith(
-                                primaryColor: Colors.black,
-                                colorScheme: const ColorScheme.light(
-                                    primary: Colors.black),
-                                buttonTheme: const ButtonThemeData(
-                                    textTheme: ButtonTextTheme.primary),
-                              ),
-                              child: child!,
-                            );
-                          },
-                        );
-                        if (pickedDate != null &&
-                            pickedDate != _selectedDateFrom) {
-                          setState(() {
-                            _selectedDateFrom = pickedDate;
-                          });
-                        }
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              _selectedDateFrom == null
-                                  ? 'Select Date From'
-                                  : 'From: ${DateFormat('yyyy-MM-dd').format(_selectedDateFrom!)}',
-                            ),
-                            const Icon(Icons.calendar_today,
-                                color: Colors.black),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: InkWell(
-                      onTap: () async {
-                        DateTime? pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2025),
-                          builder: (BuildContext context, Widget? child) {
-                            return Theme(
-                              data: ThemeData.light().copyWith(
-                                primaryColor: Colors.black,
-                                colorScheme: const ColorScheme.light(
-                                    primary: Colors.black),
-                                buttonTheme: const ButtonThemeData(
-                                    textTheme: ButtonTextTheme.primary),
-                              ),
-                              child: child!,
-                            );
-                          },
-                        );
-                        if (pickedDate != null &&
-                            pickedDate != _selectedDateTo) {
-                          setState(() {
-                            _selectedDateTo = pickedDate;
-                          });
-                        }
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              _selectedDateTo == null
-                                  ? 'Select Date To'
-                                  : 'To: ${DateFormat('yyyy-MM-dd').format(_selectedDateTo!)}',
-                            ),
-                            const Icon(Icons.calendar_today,
-                                color: Colors.black),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                   Expanded(
                     child: ListView.builder(
                       itemCount: orders.length,
@@ -234,7 +218,7 @@ class ManageSalesState extends State<ManageSales> {
             ),
             ElevatedButton(
               onPressed: () async {
-                _searchSales();
+                _generateAndShowSalesReport();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
@@ -248,12 +232,12 @@ class ManageSalesState extends State<ManageSales> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.search,
+                      Icons.picture_as_pdf,
                       color: Colors.white,
                     ),
                     SizedBox(width: 8),
                     Text(
-                      "Search",
+                      "Generate Report",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

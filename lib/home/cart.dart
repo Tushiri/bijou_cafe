@@ -171,17 +171,6 @@ class CartDetailsWidgetState extends State<CartDetailsWidget> {
                       },
                     ),
                     RadioListTile<String>(
-                      title: const Text('Credit Card'),
-                      value: 'CreditCard',
-                      groupValue: paymentChoice,
-                      onChanged: (value) {
-                        setState(() {
-                          paymentChoice = value!;
-                          paymentMethodSelected = true;
-                        });
-                      },
-                    ),
-                    RadioListTile<String>(
                       title: const Text('Paypal'),
                       value: 'Paypal',
                       groupValue: paymentChoice,

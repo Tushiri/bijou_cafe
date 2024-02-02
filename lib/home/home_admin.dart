@@ -136,11 +136,12 @@ class _HomeAdminScreenState extends State<HomeAdminScreen>
                               height: 200,
                             ),
                             Center(
-                                child: Text(
-                              "You don't have any pending orders.",
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 22),
-                            )),
+                              child: Text(
+                                "You don't have any pending orders.",
+                                style:
+                                    TextStyle(color: Colors.grey, fontSize: 22),
+                              ),
+                            ),
                           ],
                         );
                       },
