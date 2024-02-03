@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:bijou_cafe/models/online_order_model.dart';
-import 'package:bijou_cafe/models/order_model.dart';
-import 'package:bijou_cafe/utils/firestore_database.dart';
-import 'package:bijou_cafe/constants/colors.dart';
 import 'package:pdf/widgets.dart' as pdfLib;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -17,9 +13,7 @@ class ManageSales extends StatefulWidget {
 }
 
 class ManageSalesState extends State<ManageSales> {
-  FirestoreDatabase firestore = FirestoreDatabase();
-  late List<OnlineOrderModel> refreshedOrders;
-  List<OnlineOrderModel> orders = [];
+  late List<OnlineOrderModel> orders;
 
   @override
   void initState() {
@@ -28,17 +22,40 @@ class ManageSalesState extends State<ManageSales> {
   }
 
   Future<void> _getInitialOrders() async {
-    List<OnlineOrderModel>? initialOrders = await firestore.getAllOrder("");
-    if (initialOrders != null) {
-      setState(() {
-        refreshedOrders = initialOrders;
-        orders = refreshedOrders; // Display all orders initially
-      });
-    }
-  }
+    // Sample order data for demonstration
+    orders = [
+      OnlineOrderModel(
+        orderId: '1',
+        dateOrdered: DateTime.now(),
+        totalPrice: 50.0,
+        orders: [
+          OrderModel(
+            productName: 'Product A',
+            variant: 'Large',
+            quantity: 2,
+          ),
+          OrderModel(
+            productName: 'Product B',
+            variant: 'Medium',
+            quantity: 1,
+          ),
+        ],
+      ),
+      OnlineOrderModel(
+        orderId: '2',
+        dateOrdered: DateTime.now().subtract(const Duration(days: 1)),
+        totalPrice: 30.0,
+        orders: [
+          OrderModel(
+            productName: 'Product C',
+            variant: 'Small',
+            quantity: 3,
+          ),
+        ],
+      ),
+    ];
 
-  Future<void> _searchSales() async {
-    // Implement your search logic if needed
+    setState(() {});
   }
 
   void _generateAndShowSalesReport() async {
@@ -66,19 +83,17 @@ class ManageSalesState extends State<ManageSales> {
             'Order ID',
             'Date',
             'Total Price',
-            'Delivery Charge'
           ];
 
           final tableData = orders.map<List<dynamic>>((order) {
             final orderId = order.orderId;
             final date = DateFormat('yyyy-MM-dd').format(order.dateOrdered);
             final totalPrice = order.totalPrice;
-            final deliveryCharge = order.deliveryCharge;
 
             // Accumulate the total sales
             totalSales += totalPrice;
 
-            return [orderId, date, totalPrice, deliveryCharge];
+            return [orderId, date, totalPrice];
           }).toList();
 
           // Table
@@ -153,67 +168,36 @@ class ManageSalesState extends State<ManageSales> {
         ),
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'Sales Inventory',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Icon(Icons.arrow_back),
+                  ),
+                  Text(
+                    'Sales Inventory',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(width: 40),
+                ],
               ),
             ),
             Expanded(
-              child: Column(
-                children: [
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: orders.length,
-                      itemBuilder: (context, index) {
-                        OnlineOrderModel order = orders[index];
-                        return Card(
-                          margin: const EdgeInsets.all(8.0),
-                          child: ListTile(
-                            title: Text('Order ID: ${order.orderId}'),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                    'Date: ${DateFormat('yyyy-MM-dd').format(order.dateOrdered)}'),
-                                Text(
-                                    'Total Price: ${order.totalPrice.toString()}'),
-                                Text(
-                                    'Delivery Charge: ${order.deliveryCharge.toString()}'),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      'Total Sales: ${_calculateTotalSales().toString()}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text(
-                      'Top 3 Selling Items:',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  _buildTopSellingItems(),
-                ],
+              child: ListView.builder(
+                itemCount: orders.length,
+                itemBuilder: (context, index) {
+                  OnlineOrderModel order = orders[index];
+                  return SalesOrderCard(order: order);
+                },
               ),
             ),
             ElevatedButton(
@@ -221,13 +205,14 @@ class ManageSalesState extends State<ManageSales> {
                 _generateAndShowSalesReport();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
+                backgroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(0),
                 ),
               ),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    vertical: 16.0, horizontal: 24.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -252,53 +237,111 @@ class ManageSalesState extends State<ManageSales> {
       ),
     );
   }
+}
 
-  Widget _buildTopSellingItems() {
-    Map<String, int> productCountMap = {};
+class OnlineOrderModel {
+  final String orderId;
+  final DateTime dateOrdered;
+  final double totalPrice;
+  final List<OrderModel> orders;
 
-    for (OnlineOrderModel order in orders) {
-      for (OrderModel orderItem in order.orders) {
-        String productKey = '${orderItem.productName} - ${orderItem.variant}';
-        productCountMap.update(
-            productKey, (value) => value + orderItem.quantity,
-            ifAbsent: () => orderItem.quantity);
-      }
-    }
+  OnlineOrderModel({
+    required this.orderId,
+    required this.dateOrdered,
+    required this.totalPrice,
+    required this.orders,
+  });
+}
 
-    List<MapEntry<String, int>> sortedProducts = productCountMap.entries
-        .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+class OrderModel {
+  final String productName;
+  final String variant;
+  final int quantity;
 
-    List<Widget> topSellingItems = [];
-    for (int i = 0; i < sortedProducts.length && i < 3; i++) {
-      String productKey = sortedProducts[i].key;
-      List<String> productInfo = productKey.split(' - ');
+  OrderModel({
+    required this.productName,
+    required this.variant,
+    required this.quantity,
+  });
+}
 
-      topSellingItems.add(
-        Column(
+class SalesOrderCard extends StatelessWidget {
+  final OnlineOrderModel order;
+
+  const SalesOrderCard({Key? key, required this.order}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget _buildInfoRow(IconData icon, String title, String content) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
           children: [
-            Text(
-              '${productInfo[0]} - ${productInfo[1]}',
-              style: const TextStyle(fontSize: 16),
+            Icon(icon,
+                size: 20.0, color: Colors.white), // Updated color to white
+            const SizedBox(width: 10.0),
+            Expanded(
+              child: Text(
+                '$title: $content',
+                style: const TextStyle(
+                  fontWeight: FontWeight.normal,
+                  fontSize: 18.0,
+                  color: Colors.white, // Updated color to white
+                ),
+              ),
             ),
-            Text(
-              'Quantity Sold: ${sortedProducts[i].value}',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
           ],
         ),
       );
     }
 
-    return Column(children: topSellingItems);
-  }
-
-  double _calculateTotalSales() {
-    double totalSales = 0;
-    for (OnlineOrderModel order in orders) {
-      totalSales += order.totalPrice;
-    }
-    return totalSales;
+    return Card(
+      margin: const EdgeInsets.all(8.0),
+      elevation: 4.0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        side: const BorderSide(color: Colors.black, width: 2.0),
+      ),
+      child: InkWell(
+        onLongPress: () {
+          // Handle long press if needed
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.shopping_cart,
+                      color: Colors.white,
+                      size: 36.0), // Updated color to white
+                  const SizedBox(width: 10.0),
+                  Expanded(
+                    child: Text(
+                      'Order ID: ${order.orderId}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20.0,
+                        color: Colors.white, // Updated color to white
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20.0),
+              _buildInfoRow(Icons.date_range, 'Date',
+                  '${DateFormat('yyyy-MM-dd').format(order.dateOrdered)}'),
+              _buildInfoRow(Icons.money, 'Total Price',
+                  'PHP ${order.totalPrice.toStringAsFixed(2)}'),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
