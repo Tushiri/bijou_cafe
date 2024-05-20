@@ -27,6 +27,7 @@ dependencies:
   firebase_database: ^10.4.0
   flutter_local_notifications: ^16.3.2
   awesome_notifications: ^0.8.2
+  logger: ^2.3.0
 
 dev_dependencies:
   flutter_test:

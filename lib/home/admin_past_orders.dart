@@ -79,14 +79,18 @@ class AdminPastOrdersState extends State<AdminPastOrders> {
                             return const Center(
                               child: CircularProgressIndicator(),
                             );
-                          } else if (snapshot.hasError || !snapshot.hasData) {
+                          } else if (snapshot.hasError) {
                             return const Center(
                               child: Text(
                                   'Error loading orders. Please try again later.'),
                             );
+                          } else if (!snapshot.hasData ||
+                              snapshot.data!.isEmpty) {
+                            return const Center(
+                              child: Text('No orders found.'),
+                            );
                           } else {
                             List<OnlineOrderModel> orders = snapshot.data!;
-
                             return Expanded(
                               child: ListView.builder(
                                 itemCount: orders.length,
@@ -108,7 +112,9 @@ class AdminPastOrdersState extends State<AdminPastOrders> {
                 left: 0,
                 top: 0,
                 child: IconButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
                   icon: const Icon(
                     Icons.arrow_back,
                     color: Colors.black,

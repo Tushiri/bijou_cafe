@@ -6,9 +6,11 @@ import 'package:bijou_cafe/models/product_model.dart';
 import 'package:bijou_cafe/models/voucher_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bijou_cafe/models/user_model.dart';
+import 'package:logger/logger.dart';
 
 class FirestoreDatabase {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  var logger = Logger();
 
   final String _userCollection = 'users';
   final String _productsCollection = 'products';
@@ -325,6 +327,7 @@ class FirestoreDatabase {
 
       return orders;
     } catch (e) {
+      logger.e('Error fetching orders: $e');
       return null;
     }
   }

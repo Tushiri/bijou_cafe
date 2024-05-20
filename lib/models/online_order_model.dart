@@ -2,15 +2,15 @@ import 'package:bijou_cafe/models/order_model.dart';
 
 class OnlineOrderModel {
   double voucherDiscount;
-  String orderId;
-  String address;
+  final String orderId;
+  final String address;
   double deliveryCharge;
-  List<OrderModel> orders;
-  PaymentModel payment;
-  String phoneNumber;
+  final List<OrderModel> orders;
+  final PaymentModel payment;
+  final String phoneNumber;
   String status;
   double totalPrice = 0;
-  String userID;
+  final String userID;
   DateTime dateOrdered = DateTime.now();
 
   OnlineOrderModel(
